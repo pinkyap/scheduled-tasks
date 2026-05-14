@@ -1,49 +1,55 @@
-import datetime as dt
-import pandas as pd
-import random
-import smtplib
 import os
+import requests
+from twilio.rest import Client
 
-# Read hidden secrets securely from GitHub
-my_email = os.environ.get("MY_EMAIL")
-my_pass = os.environ.get("MY_PASSWORD")
 
-# 1. Check if today matches a birthday
-now = dt.datetime.now()
-today_month = now.month
-today_day = now.day
-today = (today_month, today_day)
+ 
+api_key = os.environ.get("OWM_API_KEY")
+account_sid = os.environ.get("ACCOUNT_SID")
+auth_token = os.environ.get("AUTH_TOKEN")
 
-# FIX 1: Changed local file path to relative path for GitHub
-birth_data = pd.read_csv("birthdays.csv")
+#https://api.openweathermap.org/data/2.5/forecast?lat=19.0144&lon=72.8479&appid=93a6c13180b568fe82bcb517c273ae32
 
-# Create dictionary from birthday data
-birthday_dict = {
-    (data_row.month, data_row.day): data_row for (index, data_row) in birth_data.iterrows()
+#lodz
+#lat 51.759050
+#long 19.458600
+
+#mumbai
+# "lat":19.0144,
+# "lon":72.8479,
+#it will decide
+weather_params = {
+    "lat":51.759050,
+    "lon":19.458600,
+    "appid":api_key,
+    "cnt":4
+
 }
+response = requests.get(url="https://api.openweathermap.org/data/2.5/forecast", params=weather_params)
+data = response.json()
 
-# FIX 2: Changed local folder paths to relative paths for GitHub template folder
-letters = [
-    "letter_templates/letter_1.txt",
-    "letter_templates/letter_2.txt",
-    "letter_templates/letter_3.txt"
-]
-choose_random_letter = random.choice(letters)
+bring_umbrella = False
+#id = data["list"][3]["weather"][0]["id"]
+id_list = []
+for n in range(0,4):
+    print(n)
+    id = data["list"][n]["weather"][0]["id"]
+    id_list.append(id)
+    if id  == 500:
+        bring_umbrella = True
 
-# 2. Process and send the email if there is a match
-if today in birthday_dict:
-    birthday_person = birthday_dict[today]
-    with open(choose_random_letter, mode="r") as letter:
-        content = letter.read()
-        final_letter = content.replace("[NAME]", birthday_person["name"])
-    
-    with smtplib.SMTP("smtp.gmail.com", port=587) as connection:
-        connection.starttls()
-        connection.login(user=my_email, password=my_pass)
-        
-        # FIX 3: Changed hardcoded to_addrs to use the person's email from the CSV automatically
-        connection.sendmail(
-            from_addr=my_email,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday {birthday_person['name']}\n\n{final_letter}"
-        )
+
+#trial number +19789069714
+if bring_umbrella:
+    print("bring umbrellas")
+    client = Client(account_sid, auth_token)
+
+    message = client.messages.create(
+        body="its going to rain today so bring your umbrella☔️",
+        from_="+19789069714",
+        to="+917039893483",
+    )
+
+print(message.status)
+
+
